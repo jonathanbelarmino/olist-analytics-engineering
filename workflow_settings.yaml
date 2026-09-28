@@ -1,0 +1,5 @@
+defaultProject: olist-analytics-portfolio
+defaultLocation: US
+defaultDataset: dataform
+defaultAssertionDataset: dataform_testes
+dataformCoreVersion: 3.0.52
