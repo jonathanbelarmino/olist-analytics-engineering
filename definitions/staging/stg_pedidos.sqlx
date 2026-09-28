@@ -1,0 +1,20 @@
+config {
+  type: "view",
+  schema: "staging",
+  description: "Pedidos da Olist com tipos convertidos. Um registro por pedido.",
+  assertions: {
+    uniqueKey: ["id_pedido"],
+    nonNull: ["id_pedido", "id_cliente", "status_pedido", "data_hora_compra"]
+  }
+}
+
+select
+  order_id                                          as id_pedido,
+  customer_id                                       as id_cliente,
+  order_status                                      as status_pedido,
+  cast(order_purchase_timestamp as datetime)        as data_hora_compra,
+  cast(order_approved_at as datetime)               as data_hora_aprovacao,
+  cast(order_delivered_carrier_date as datetime)    as data_hora_envio,
+  cast(order_delivered_customer_date as datetime)   as data_hora_entrega,
+  date(cast(order_estimated_delivery_date as datetime)) as data_entrega_estimada
+from ${ref("orders")}
