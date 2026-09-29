@@ -1,0 +1,17 @@
+config {
+  type: "view",
+  schema: "staging",
+  description: "Clientes da Olist. Atenção: id_cliente é gerado a cada pedido; a pessoa real é id_cliente_unico.",
+  assertions: {
+    uniqueKey: ["id_cliente"],
+    nonNull: ["id_cliente", "id_cliente_unico"]
+  }
+}
+
+select
+  customer_id                                   as id_cliente,
+  customer_unique_id                            as id_cliente_unico,
+  lpad(customer_zip_code_prefix, 5, '0')        as cep_prefixo,
+  initcap(customer_city)                        as cidade,
+  upper(customer_state)                         as uf
+from ${ref("customers")}

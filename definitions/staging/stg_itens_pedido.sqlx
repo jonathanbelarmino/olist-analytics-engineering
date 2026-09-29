@@ -1,0 +1,19 @@
+config {
+  type: "view",
+  schema: "staging",
+  description: "Itens dos pedidos. Um registro por item dentro de um pedido.",
+  assertions: {
+    uniqueKey: ["id_pedido", "numero_item"],
+    nonNull: ["id_pedido", "numero_item", "id_produto", "id_vendedor", "valor_item"]
+  }
+}
+
+select
+  order_id                              as id_pedido,
+  cast(order_item_id as int64)          as numero_item,
+  product_id                            as id_produto,
+  seller_id                             as id_vendedor,
+  cast(shipping_limit_date as datetime) as data_hora_limite_envio,
+  cast(price as numeric)                as valor_item,
+  cast(freight_value as numeric)        as valor_frete
+from ${ref("order_items")}

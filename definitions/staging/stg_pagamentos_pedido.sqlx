@@ -1,0 +1,17 @@
+config {
+  type: "view",
+  schema: "staging",
+  description: "Pagamentos dos pedidos. Um pedido pode ter várias linhas (ex.: voucher + cartão).",
+  assertions: {
+    uniqueKey: ["id_pedido", "sequencial_pagamento"],
+    nonNull: ["id_pedido", "sequencial_pagamento", "valor_pagamento"]
+  }
+}
+
+select
+  order_id                          as id_pedido,
+  cast(payment_sequential as int64) as sequencial_pagamento,
+  payment_type                      as tipo_pagamento,
+  cast(payment_installments as int64) as parcelas,
+  cast(payment_value as numeric)    as valor_pagamento
+from ${ref("order_payments")}
