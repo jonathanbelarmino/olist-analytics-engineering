@@ -1,0 +1,16 @@
+config {
+  type: "view",
+  schema: "staging",
+  description: "Vendedores da Olist. Um registro por vendedor.",
+  assertions: {
+    uniqueKey: ["id_vendedor"],
+    nonNull: ["id_vendedor"]
+  }
+}
+
+select
+  seller_id                              as id_vendedor,
+  lpad(seller_zip_code_prefix, 5, '0')   as cep_prefixo,
+  initcap(seller_city)                   as cidade,
+  upper(seller_state)                    as uf
+from ${ref("sellers")}

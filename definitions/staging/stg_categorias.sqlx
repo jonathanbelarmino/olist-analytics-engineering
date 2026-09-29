@@ -1,0 +1,14 @@
+config {
+  type: "view",
+  schema: "staging",
+  description: "Tradução dos nomes de categoria de produto, do português para o inglês.",
+  assertions: {
+    uniqueKey: ["categoria_produto"],
+    nonNull: ["categoria_produto", "categoria_produto_en"]
+  }
+}
+
+select
+  product_category_name          as categoria_produto,
+  product_category_name_english  as categoria_produto_en
+from ${ref("product_category_name_translation")}

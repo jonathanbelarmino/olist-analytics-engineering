@@ -1,0 +1,17 @@
+config {
+  type: "view",
+  schema: "staging",
+  description: "Avaliações dos pedidos. Os textos dos comentários ficam de fora; continuam na raw.",
+  assertions: {
+    uniqueKey: ["id_avaliacao", "id_pedido"],
+    nonNull: ["id_avaliacao", "id_pedido", "nota"]
+  }
+}
+
+select
+  review_id                                  as id_avaliacao,
+  order_id                                   as id_pedido,
+  cast(review_score as int64)                as nota,
+  cast(review_creation_date as datetime)     as data_hora_criacao,
+  cast(review_answer_timestamp as datetime)  as data_hora_resposta
+from ${ref("order_reviews")}

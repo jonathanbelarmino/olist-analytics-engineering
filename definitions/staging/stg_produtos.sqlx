@@ -1,0 +1,19 @@
+config {
+  type: "view",
+  schema: "staging",
+  description: "Produtos da Olist. Um registro por produto. Categoria e medidas podem vir vazias na origem.",
+  assertions: {
+    uniqueKey: ["id_produto"],
+    nonNull: ["id_produto"]
+  }
+}
+
+select
+  product_id                            as id_produto,
+  product_category_name                 as categoria_produto,
+  cast(product_photos_qty as int64)     as qtd_fotos,
+  cast(product_weight_g as int64)       as peso_g,
+  cast(product_length_cm as int64)      as comprimento_cm,
+  cast(product_height_cm as int64)      as altura_cm,
+  cast(product_width_cm as int64)       as largura_cm
+from ${ref("products")}
