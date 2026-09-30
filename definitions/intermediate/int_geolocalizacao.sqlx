@@ -1,0 +1,17 @@
+config {
+  type: "table",
+  schema: "intermediate",
+  description: "Coordenadas médias por prefixo de CEP. Um registro por CEP, para juntar sem duplicar linhas.",
+  assertions: {
+    uniqueKey: ["cep_prefixo"],
+    nonNull: ["cep_prefixo", "latitude", "longitude"]
+  }
+}
+
+select
+  cep_prefixo,
+  avg(latitude)   as latitude,
+  avg(longitude)  as longitude,
+  count(*)        as qtd_registros_origem
+from ${ref("stg_geolocalizacao")}
+group by cep_prefixo
