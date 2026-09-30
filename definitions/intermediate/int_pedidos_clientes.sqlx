@@ -1,0 +1,22 @@
+config {
+  type: "table",
+  schema: "intermediate",
+  description: "Pedidos com o cliente real (id_cliente_unico). Um registro por pedido.",
+  assertions: {
+    uniqueKey: ["id_pedido"],
+    nonNull: ["id_pedido", "id_cliente_unico"]
+  }
+}
+
+select
+  p.id_pedido,
+  p.id_cliente,
+  c.id_cliente_unico,
+  p.status_pedido,
+  p.data_hora_compra,
+  c.cep_prefixo,
+  c.cidade,
+  c.uf
+from ${ref("stg_pedidos")} as p
+inner join ${ref("stg_clientes")} as c
+  on p.id_cliente = c.id_cliente

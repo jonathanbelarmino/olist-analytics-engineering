@@ -1,0 +1,18 @@
+config {
+  type: "table",
+  schema: "intermediate",
+  description: "Pagamentos agregados por pedido. Um registro por pedido, para evitar duplicar o faturamento nas junções.",
+  assertions: {
+    uniqueKey: ["id_pedido"],
+    nonNull: ["id_pedido", "valor_total_pago"]
+  }
+}
+
+select
+  id_pedido,
+  count(*)                                                  as qtd_pagamentos,
+  sum(valor_pagamento)                                      as valor_total_pago,
+  max(parcelas)                                             as max_parcelas,
+  string_agg(distinct tipo_pagamento, ', ' order by tipo_pagamento) as tipos_pagamento
+from ${ref("stg_pagamentos_pedido")}
+group by id_pedido
