@@ -1,7 +1,7 @@
 config {
   type: "table",
   schema: "marts",
-  description: "Retenção por coorte. Coorte = mês da primeira compra válida do cliente real. Um registro por coorte e por mês desde a primeira compra.",
+  description: "Retenção por coorte. Coorte = mês da primeira compra válida do cliente real. Um registro por coorte e por mês desde a primeira compra, incluindo meses sem retorno (zero). Setembro/2018 fica de fora por ter dados incompletos.",
   assertions: {
     uniqueKey: ["coorte_ano_mes", "meses_desde_primeira_compra"],
     nonNull: ["coorte_ano_mes", "meses_desde_primeira_compra", "clientes_na_coorte", "clientes_ativos"]
@@ -33,6 +33,24 @@ tamanho as (
   group by mes_coorte
 ),
 
+-- último mês com dados completos no dataset
+limite as (
+  select date '2018-08-01' as mes_final
+),
+
+-- uma linha para cada coorte e cada mês possível, tenha ou não havido retorno
+grade as (
+  select
+    t.mes_coorte,
+    t.clientes_na_coorte,
+    meses_desde_primeira_compra
+  from tamanho as t
+  cross join limite as l
+  cross join unnest(
+    generate_array(0, date_diff(l.mes_final, t.mes_coorte, month))
+  ) as meses_desde_primeira_compra
+),
+
 atividade as (
   select
     p.mes_coorte,
@@ -45,11 +63,12 @@ atividade as (
 )
 
 select
-  format_date('%Y-%m', a.mes_coorte)                              as coorte_ano_mes,
-  a.meses_desde_primeira_compra,
-  t.clientes_na_coorte,
-  a.clientes_ativos,
-  round(safe_divide(a.clientes_ativos, t.clientes_na_coorte), 4)  as taxa_retencao
-from atividade as a
-inner join tamanho as t
-  on a.mes_coorte = t.mes_coorte
+  format_date('%Y-%m', g.mes_coorte)                                           as coorte_ano_mes,
+  g.meses_desde_primeira_compra,
+  g.clientes_na_coorte,
+  coalesce(a.clientes_ativos, 0)                                               as clientes_ativos,
+  round(safe_divide(coalesce(a.clientes_ativos, 0), g.clientes_na_coorte), 4)  as taxa_retencao
+from grade as g
+left join atividade as a
+  on  g.mes_coorte = a.mes_coorte
+  and g.meses_desde_primeira_compra = a.meses_desde_primeira_compra

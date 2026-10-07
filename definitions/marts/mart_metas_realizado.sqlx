@@ -19,7 +19,8 @@ with base as (
       order by ano_mes rows between 3 preceding and 1 preceding
     ) as meses_na_janela
   from ${ref("mart_vendas_mensais")}
-  where ano_mes >= '2017-01'
+    where ano_mes >= '2017-01'
+    and ano_mes < '2018-09'
 )
 
 select
