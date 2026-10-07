@@ -18,7 +18,8 @@ select
   date(p.data_hora_compra)       as data_compra,
   i.valor_item,
   i.valor_frete,
-  i.valor_item + i.valor_frete   as valor_total_item
+    i.valor_item + i.valor_frete   as valor_total_item,
+  p.status_pedido not in ('canceled', 'unavailable') as venda_valida
 from ${ref("stg_itens_pedido")} as i
 left join ${ref("int_pedidos_clientes")} as p
   on i.id_pedido = p.id_pedido
