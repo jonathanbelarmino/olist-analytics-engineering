@@ -1,0 +1,21 @@
+config {
+  type: "table",
+  schema: "marts",
+  description: "Dimensão de produtos. Um registro por produto, com a categoria traduzida.",
+  assertions: {
+    uniqueKey: ["id_produto"],
+    nonNull: ["id_produto", "categoria_produto"]
+  }
+}
+
+select
+  p.id_produto,
+  coalesce(c.categoria_produto_en, p.categoria_produto, 'sem_categoria') as categoria_produto,
+  p.qtd_fotos,
+  p.peso_g,
+  p.comprimento_cm,
+  p.altura_cm,
+  p.largura_cm
+from ${ref("stg_produtos")} as p
+left join ${ref("stg_categorias")} as c
+  on p.categoria_produto = c.categoria_produto

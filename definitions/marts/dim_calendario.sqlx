@@ -1,0 +1,24 @@
+config {
+  type: "table",
+  schema: "marts",
+  description: "Dimensão de calendário, de 2016 a 2018. Um registro por dia.",
+  assertions: {
+    uniqueKey: ["data"],
+    nonNull: ["data"]
+  }
+}
+
+select
+  data,
+  extract(year from data)                    as ano,
+  extract(month from data)                   as mes,
+  ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+   'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
+    [offset(extract(month from data) - 1)]   as nome_mes,
+  extract(quarter from data)                 as trimestre,
+  format_date('%Y-%m', data)                 as ano_mes,
+  extract(dayofweek from data)               as dia_semana_num,
+  ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado']
+    [offset(extract(dayofweek from data) - 1)] as nome_dia_semana,
+  extract(dayofweek from data) in (1, 7)     as fim_de_semana
+from unnest(generate_date_array('2016-01-01', '2018-12-31')) as data

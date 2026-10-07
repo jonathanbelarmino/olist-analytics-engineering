@@ -1,0 +1,34 @@
+config {
+  type: "table",
+  schema: "marts",
+  description: "Dimensão de clientes reais. Um registro por pessoa (id_cliente_unico), com o endereço da compra mais recente.",
+  assertions: {
+    uniqueKey: ["id_cliente_unico"],
+    nonNull: ["id_cliente_unico"]
+  }
+}
+
+with ranqueado as (
+  select
+    id_cliente_unico,
+    cep_prefixo,
+    cidade,
+    uf,
+    row_number() over (
+      partition by id_cliente_unico
+      order by data_hora_compra desc, id_pedido desc
+    ) as ordem
+  from ${ref("int_pedidos_clientes")}
+)
+
+select
+  r.id_cliente_unico,
+  r.cep_prefixo,
+  r.cidade,
+  r.uf,
+  g.latitude,
+  g.longitude
+from ranqueado as r
+left join ${ref("int_geolocalizacao")} as g
+  on r.cep_prefixo = g.cep_prefixo
+where r.ordem = 1

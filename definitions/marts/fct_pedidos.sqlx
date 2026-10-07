@@ -1,0 +1,38 @@
+config {
+  type: "table",
+  schema: "marts",
+  description: "Fato de pedidos. Um registro por pedido, com valores dos itens, frete e pagamentos.",
+  assertions: {
+    uniqueKey: ["id_pedido"],
+    nonNull: ["id_pedido", "id_cliente_unico", "data_compra", "status_pedido"]
+  }
+}
+
+with itens as (
+  select
+    id_pedido,
+    count(*)          as qtd_itens,
+    sum(valor_item)   as valor_itens,
+    sum(valor_frete)  as valor_frete
+  from ${ref("stg_itens_pedido")}
+  group by id_pedido
+)
+
+select
+  p.id_pedido,
+  p.id_cliente_unico,
+  p.status_pedido,
+  p.data_hora_compra,
+  date(p.data_hora_compra)                                   as data_compra,
+  coalesce(i.qtd_itens, 0)                                   as qtd_itens,
+  coalesce(i.valor_itens, 0)                                 as valor_itens,
+  coalesce(i.valor_frete, 0)                                 as valor_frete,
+  coalesce(i.valor_itens, 0) + coalesce(i.valor_frete, 0)    as valor_total_pedido,
+  pg.valor_total_pago,
+  pg.qtd_pagamentos,
+  pg.tipos_pagamento
+from ${ref("int_pedidos_clientes")} as p
+left join itens as i
+  on p.id_pedido = i.id_pedido
+left join ${ref("int_pagamentos_pedido")} as pg
+  on p.id_pedido = pg.id_pedido

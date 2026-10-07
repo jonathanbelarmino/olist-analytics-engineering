@@ -1,0 +1,20 @@
+config {
+  type: "table",
+  schema: "marts",
+  description: "Dimensão de vendedores. Um registro por vendedor, com coordenadas médias do CEP.",
+  assertions: {
+    uniqueKey: ["id_vendedor"],
+    nonNull: ["id_vendedor"]
+  }
+}
+
+select
+  v.id_vendedor,
+  v.cep_prefixo,
+  v.cidade,
+  v.uf,
+  g.latitude,
+  g.longitude
+from ${ref("stg_vendedores")} as v
+left join ${ref("int_geolocalizacao")} as g
+  on v.cep_prefixo = g.cep_prefixo

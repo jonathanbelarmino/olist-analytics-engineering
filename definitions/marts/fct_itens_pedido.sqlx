@@ -1,0 +1,24 @@
+config {
+  type: "table",
+  schema: "marts",
+  description: "Fato de itens. Um registro por item vendido, com granularidade mais fina para análises por produto e vendedor.",
+  assertions: {
+    uniqueKey: ["id_pedido", "numero_item"],
+    nonNull: ["id_pedido", "numero_item", "id_produto", "id_vendedor", "id_cliente_unico", "data_compra", "valor_item"]
+  }
+}
+
+select
+  i.id_pedido,
+  i.numero_item,
+  i.id_produto,
+  i.id_vendedor,
+  p.id_cliente_unico,
+  p.status_pedido,
+  date(p.data_hora_compra)       as data_compra,
+  i.valor_item,
+  i.valor_frete,
+  i.valor_item + i.valor_frete   as valor_total_item
+from ${ref("stg_itens_pedido")} as i
+left join ${ref("int_pedidos_clientes")} as p
+  on i.id_pedido = p.id_pedido
