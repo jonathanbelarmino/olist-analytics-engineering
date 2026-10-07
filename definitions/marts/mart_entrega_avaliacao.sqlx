@@ -1,0 +1,38 @@
+config {
+  type: "table",
+  schema: "marts",
+  description: "Nota média de avaliação por faixa de prazo de entrega e atraso. Só vendas válidas já entregues e avaliadas.",
+  assertions: {
+    uniqueKey: ["faixa_entrega", "entregue_com_atraso"],
+    nonNull: ["faixa_entrega", "entregue_com_atraso", "qtd_pedidos", "nota_media"]
+  }
+}
+
+with entregas as (
+  select
+    f.id_pedido,
+    date_diff(date(p.data_hora_entrega), f.data_compra, day) as dias_entrega,
+    date(p.data_hora_entrega) > p.data_entrega_estimada      as entregue_com_atraso,
+    a.nota
+  from ${ref("fct_pedidos")} as f
+  inner join ${ref("stg_pedidos")} as p
+    on f.id_pedido = p.id_pedido
+  inner join ${ref("int_avaliacoes_pedido")} as a
+    on f.id_pedido = a.id_pedido
+  where f.venda_valida
+    and p.data_hora_entrega is not null
+)
+
+select
+  case
+    when dias_entrega <= 7  then '1. Até 7 dias'
+    when dias_entrega <= 14 then '2. 8 a 14 dias'
+    when dias_entrega <= 21 then '3. 15 a 21 dias'
+    when dias_entrega <= 30 then '4. 22 a 30 dias'
+    else '5. Mais de 30 dias'
+  end                       as faixa_entrega,
+  entregue_com_atraso,
+  count(*)                  as qtd_pedidos,
+  round(avg(nota), 2)       as nota_media
+from entregas
+group by faixa_entrega, entregue_com_atraso

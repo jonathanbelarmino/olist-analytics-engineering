@@ -1,0 +1,27 @@
+config {
+  type: "table",
+  schema: "intermediate",
+  description: "Avaliação mais recente de cada pedido. Um registro por pedido (alguns pedidos têm mais de uma avaliação na origem).",
+  assertions: {
+    uniqueKey: ["id_pedido"],
+    nonNull: ["id_pedido", "nota"]
+  }
+}
+
+select
+  id_pedido,
+  id_avaliacao,
+  nota,
+  data_hora_criacao,
+  qtd_avaliacoes_origem
+from (
+  select
+    *,
+    count(*) over (partition by id_pedido) as qtd_avaliacoes_origem,
+    row_number() over (
+      partition by id_pedido
+      order by data_hora_criacao desc, data_hora_resposta desc, id_avaliacao desc
+    ) as ordem
+  from ${ref("stg_avaliacoes")}
+)
+where ordem = 1

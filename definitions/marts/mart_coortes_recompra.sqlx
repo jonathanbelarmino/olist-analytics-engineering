@@ -1,0 +1,55 @@
+config {
+  type: "table",
+  schema: "marts",
+  description: "Retenção por coorte. Coorte = mês da primeira compra válida do cliente real. Um registro por coorte e por mês desde a primeira compra.",
+  assertions: {
+    uniqueKey: ["coorte_ano_mes", "meses_desde_primeira_compra"],
+    nonNull: ["coorte_ano_mes", "meses_desde_primeira_compra", "clientes_na_coorte", "clientes_ativos"]
+  }
+}
+
+with compras as (
+  select
+    id_cliente_unico,
+    date_trunc(data_compra, month) as mes_compra
+  from ${ref("fct_pedidos")}
+  where venda_valida
+  group by id_cliente_unico, mes_compra
+),
+
+primeira as (
+  select
+    id_cliente_unico,
+    min(mes_compra) as mes_coorte
+  from compras
+  group by id_cliente_unico
+),
+
+tamanho as (
+  select
+    mes_coorte,
+    count(*) as clientes_na_coorte
+  from primeira
+  group by mes_coorte
+),
+
+atividade as (
+  select
+    p.mes_coorte,
+    date_diff(c.mes_compra, p.mes_coorte, month) as meses_desde_primeira_compra,
+    count(distinct c.id_cliente_unico)           as clientes_ativos
+  from compras as c
+  inner join primeira as p
+    on c.id_cliente_unico = p.id_cliente_unico
+  group by p.mes_coorte, meses_desde_primeira_compra
+)
+
+select
+  format_date('%Y-%m', a.mes_coorte)                              as coorte_ano_mes,
+  a.meses_desde_primeira_compra,
+  t.clientes_na_coorte,
+  a.clientes_ativos,
+  round(safe_divide(a.clientes_ativos, t.clientes_na_coorte), 4)  as taxa_retencao
+from atividade as a
+inner join tamanho as t
+  on a.mes_coorte = t.mes_coorte

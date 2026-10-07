@@ -1,0 +1,65 @@
+config {
+  type: "table",
+  schema: "marts",
+  description: "Segmentação RFM (recência, frequência, valor) dos clientes reais, só com vendas válidas. Um registro por cliente.",
+  assertions: {
+    uniqueKey: ["id_cliente_unico"],
+    nonNull: ["id_cliente_unico", "dias_desde_ultima_compra", "qtd_pedidos", "valor_total", "segmento"]
+  }
+}
+
+with base as (
+  select
+    id_cliente_unico,
+    min(data_compra) as data_primeira_compra,
+    max(data_compra) as data_ultima_compra,
+    count(*)         as qtd_pedidos,
+    sum(valor_itens) as valor_total
+  from ${ref("fct_pedidos")}
+  where venda_valida
+  group by id_cliente_unico
+),
+
+referencia as (
+  select max(data_compra) as data_referencia
+  from ${ref("fct_pedidos")}
+  where venda_valida
+),
+
+metricas as (
+  select
+    b.id_cliente_unico,
+    b.data_primeira_compra,
+    b.data_ultima_compra,
+    b.qtd_pedidos,
+    b.valor_total,
+    date_diff(r.data_referencia, b.data_ultima_compra, day) as dias_desde_ultima_compra
+  from base as b
+  cross join referencia as r
+),
+
+pontuado as (
+  select
+    *,
+    ntile(5) over (order by dias_desde_ultima_compra desc, id_cliente_unico) as r_score,
+    case
+      when qtd_pedidos >= 3 then 5
+      when qtd_pedidos = 2  then 3
+      else 1
+    end                                                                      as f_score,
+    ntile(5) over (order by valor_total asc, id_cliente_unico)               as m_score
+  from metricas
+)
+
+select
+  *,
+  case
+    when f_score >= 3 and r_score >= 4 then 'Campeões'
+    when f_score >= 3                  then 'Recorrentes'
+    when r_score >= 4 and m_score >= 4 then 'Novos de alto valor'
+    when r_score >= 4                  then 'Novos'
+    when r_score <= 2 and m_score >= 4 then 'Em risco de alto valor'
+    when r_score <= 2                  then 'Dormentes'
+    else 'Regulares'
+  end as segmento
+from pontuado

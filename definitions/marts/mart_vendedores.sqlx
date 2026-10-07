@@ -1,0 +1,28 @@
+config {
+  type: "table",
+  schema: "marts",
+  description: "Desempenho dos vendedores, só com vendas válidas. Um registro por vendedor que vendeu.",
+  assertions: {
+    uniqueKey: ["id_vendedor"],
+    nonNull: ["id_vendedor", "qtd_pedidos", "faturamento"]
+  }
+}
+
+select
+  v.id_vendedor,
+  v.cidade,
+  v.uf,
+  count(distinct f.id_pedido)                                              as qtd_pedidos,
+  count(*)                                                                 as qtd_itens,
+  sum(f.valor_item)                                                        as faturamento,
+  sum(f.valor_frete)                                                       as valor_frete,
+  round(safe_divide(sum(f.valor_item), count(distinct f.id_pedido)), 2)    as ticket_medio,
+  round(safe_divide(sum(f.valor_item), sum(sum(f.valor_item)) over ()), 6) as participacao_faturamento,
+  rank() over (order by sum(f.valor_item) desc)                            as ranking_faturamento,
+  min(f.data_compra)                                                       as data_primeira_venda,
+  max(f.data_compra)                                                       as data_ultima_venda
+from ${ref("fct_itens_pedido")} as f
+inner join ${ref("dim_vendedores")} as v
+  on f.id_vendedor = v.id_vendedor
+where f.venda_valida
+group by v.id_vendedor, v.cidade, v.uf

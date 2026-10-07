@@ -1,0 +1,33 @@
+config {
+  type: "table",
+  schema: "marts",
+  description: "Meta simulada vs. realizado por mês. Meta = média do faturamento dos 3 meses anteriores + 10%. A Olist não tem metas reais.",
+  assertions: {
+    uniqueKey: ["ano_mes"],
+    nonNull: ["ano_mes", "faturamento_realizado", "meta_faturamento"]
+  }
+}
+
+with base as (
+  select
+    ano_mes,
+    faturamento,
+    avg(faturamento) over (
+      order by ano_mes rows between 3 preceding and 1 preceding
+    ) as media_3m_anteriores,
+    count(faturamento) over (
+      order by ano_mes rows between 3 preceding and 1 preceding
+    ) as meses_na_janela
+  from ${ref("mart_vendas_mensais")}
+  where ano_mes >= '2017-01'
+)
+
+select
+  ano_mes,
+  round(faturamento, 2)                                             as faturamento_realizado,
+  round(media_3m_anteriores * 1.10, 2)                              as meta_faturamento,
+  round(faturamento - media_3m_anteriores * 1.10, 2)                as desvio,
+  round(safe_divide(faturamento, media_3m_anteriores * 1.10), 4)    as atingimento,
+  faturamento >= media_3m_anteriores * 1.10                         as meta_batida
+from base
+where meses_na_janela = 3
