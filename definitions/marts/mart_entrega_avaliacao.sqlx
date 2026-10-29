@@ -1,38 +1,47 @@
 config {
-  type: "table",
-  schema: "marts",
-  description: "Nota média de avaliação por faixa de prazo de entrega e atraso. Só vendas válidas já entregues e avaliadas.",
-  assertions: {
-    uniqueKey: ["faixa_entrega", "entregue_com_atraso"],
-    nonNull: ["faixa_entrega", "entregue_com_atraso", "qtd_pedidos", "nota_media"]
-  }
+    type: "table",
+    schema: "marts",
+    description: "Nota média de avaliação por faixa de prazo de entrega e atraso. Só vendas válidas já entregues e avaliadas.",
+    assertions: {
+        uniqueKey: ["faixa_entrega", "entregue_com_atraso"],
+        nonNull: ["faixa_entrega", "entregue_com_atraso", "qtd_pedidos", "nota_media"]
+    }
 }
 
-with entregas as (
-  select
+WITH
+  entregas AS (
+  SELECT
     f.id_pedido,
-    date_diff(date(p.data_hora_entrega), f.data_compra, day) as dias_entrega,
-    date(p.data_hora_entrega) > p.data_entrega_estimada      as entregue_com_atraso,
+    DATE_DIFF(DATE(p.data_hora_entrega), f.data_compra, day) AS dias_entrega,
+    DATE(p.data_hora_entrega) > p.data_entrega_estimada AS entregue_com_atraso,
     a.nota
-  from ${ref("fct_pedidos")} as f
-  inner join ${ref("stg_pedidos")} as p
-    on f.id_pedido = p.id_pedido
-  inner join ${ref("int_avaliacoes_pedido")} as a
-    on f.id_pedido = a.id_pedido
-  where f.venda_valida
-    and p.data_hora_entrega is not null
-)
-
-select
-  case
-    when dias_entrega <= 7  then '1. Até 7 dias'
-    when dias_entrega <= 14 then '2. 8 a 14 dias'
-    when dias_entrega <= 21 then '3. 15 a 21 dias'
-    when dias_entrega <= 30 then '4. 22 a 30 dias'
-    else '5. Mais de 30 dias'
-  end                       as faixa_entrega,
+  FROM
+    ${ref("fct_pedidos")} AS f
+  INNER JOIN
+    ${ref("stg_pedidos")} AS p
+  ON
+    f.id_pedido = p.id_pedido
+  INNER JOIN
+    ${ref("int_avaliacoes_pedido")} AS a
+  ON
+    f.id_pedido = a.id_pedido
+  WHERE
+    f.venda_valida
+    AND p.data_hora_entrega IS NOT NULL )
+SELECT
+  CASE
+    WHEN dias_entrega <= 7 THEN '1. Até 7 dias'
+    WHEN dias_entrega <= 14 THEN '2. 8 a 14 dias'
+    WHEN dias_entrega <= 21 THEN '3. 15 a 21 dias'
+    WHEN dias_entrega <= 30 THEN '4. 22 a 30 dias'
+    ELSE '5. Mais de 30 dias'
+END
+  AS faixa_entrega,
   entregue_com_atraso,
-  count(*)                  as qtd_pedidos,
-  round(avg(nota), 2)       as nota_media
-from entregas
-group by faixa_entrega, entregue_com_atraso
+  COUNT(*) AS qtd_pedidos,
+  ROUND(AVG(nota), 2) AS nota_media
+FROM
+  entregas
+GROUP BY
+  faixa_entrega,
+  entregue_com_atraso
